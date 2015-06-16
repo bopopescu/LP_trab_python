@@ -6,6 +6,7 @@ construcao de dados
 		adiciona objeto a fila que sera consumida pela thread de adicao ao banco
 
 criacao do esquema do banco de dados
+	tabela de com atributos de tags importantes
 
 persistencia
 	abre conexao com o banco (!)

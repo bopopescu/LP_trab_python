@@ -2,64 +2,87 @@
 
 import xml.etree.ElementTree as ET
 import MySQLdb
+import threading
+import time
 
-tabs = 0
+class MessageQueue:
+	"""Fila de mensagens para ser consumida por thread. Tipo (objeto, label)"""
+	mainQueue = []
+	@classmethod
+	def stack(cls, dataObject, label):
+		cls.mainQueue.append((dataObject, label))
+	@classmethod
+	def pop(cls):
+		return cls.mainQueue.pop()
+
+class QueueConsumer(threading.Thread):
+	#def ConsumeQueue(self):
+	shutdown = False
+	def run(self):
+		while not self.shutdown:
+			time.sleep(1)
+			if MessageQueue.mainQueue:
+				print MessageQueue.mainQueue
+#				self.ConsumeObject(MessageQueue.pop())
+
+	def ConsumeObject(self, obj):
+		label = self.evaluateLabel(obj[1])
+		
+	def evaluateLabel(self, label):
+		if label == 'DADOS-GERAIS':
+			return 'dados'
+		if label == 'DADOS-NUMERICOS':
+			return 'dadosnumericos'
 
 class dbCon:
     """BD connection class"""
     def openCon(void):
-	return MySQLdb.connect(host='localhost', user='root', passwd='root',db='python')
+	return MySQLdb.connect(host='localhost', user='root', passwd='root',db='pythonTest')
 
-def iterAllLevels(node):
-	global tabs
-	for child in node.iter('*'):
-		hasChildren = list(child)
-		if hasChildren:
-			tabs = tabs + 1
-	#		for gran in child.iter('*'):
-			print hasChildren
-#			print ' ' * tabs,  child.tag, child.attrib, child.text
-#			iterAllLevels(child)
-		else:
-			tabs = tabs - 1
-#		print child.tag, child.attrib, child.text
 
-DbCon = dbCon()
-con = DbCon.openCon()
+def isDataOfInterest(data):
+	dataOfInterest = ['NOME-COMPLETO', 'PERMISSAO-DE-DIVULGACAO', 'CIDADE-NASCIMENTO', 'PAIS-DE-NASCIMENTO', 'DATA-FALECIMENTO']
+	return data[0] in dataOfInterest
 
-tree = ET.parse('sampleData.xml')
+#Main
+tree = ET.parse('curriculo.xml')
 root = tree.getroot()
+qConsumer = QueueConsumer()
+#try:
+	#qConsumer.start()
+#thread.start_new_thread(qConsumer.ConsumeQueue(), ())
+#except:
+#	print "Unable to start thread"
+print "Started..."
 
-iterAllLevels(root)
+#root[0].attrib.values() #valores do dict
+root[0].attrib.items() #lista de tuplas do tipo(key, value)
+someInterestingData = filter(isDataOfInterest, root[0].attrib.items())
+someInterestingData.append(root.attrib['NUMERO-IDENTIFICADOR'])
 
-#for child in root.iter('*'):
-#	print(child.tag, child.attrib, child.text)
-#	if list(child):
-#		print child.tag, child.attrib, child.text
-#		for gran in list(child):
-#			print '-->', gran.tag, gran.attrib, gran.text
-#		for gran in child.list()
-#			print(gran.tag, gran.text)
+messageQueue = MessageQueue()
+MessageQueue.stack(someInterestingData, root[0].tag)
+print MessageQueue.mainQueue
+#time.sleep(5)
+#MessageQueue.stack(MessageQueue(), someInterestingData, root[0].tag)
 
+x = MessageQueue.pop()
+print x
+#time.sleep(5)
+print MessageQueue.mainQueue
 
-#for child in root:
-#	for gran in child:
-#		print (gran.text)
-#    cont = 0
-#    for element in parent.iterdescendants():
-#        if element.tag == 'country':
-#            if element.text == str(id_number):
-#                cont = 1
-#        if element.getchildren() == []:
-#	 print(element.text)
-#            insert[element.tag] = element.text
-#    if cont:
-#        inserts.append(insert)
+qConsumer.shutdown = True
+#qConsumer.join()
+#messageQueue.stack(someInterestingData, root[0].tag)
 
-#print inserts
+#len(list(root[1][1])) #numero de artigos publicados 'ARTIGOS-PUBLICADOS'
+#len(list(root[1][0])) #numero de trabalhos em eventos	'TRABALHOS-EM-EVENTOS'
+#len(list(root[3][0])) #numero de orientacoes concluidas	'ORIENTACOES-CONCLUIDAS'
 
+#DbCon = dbCon()
+#con = DbCon.openCon()
 #cursor = con.cursor()
+#cursor.execute("INSERT INTO pais VALUES(\""+name+"\","+rank+","+year+");")
 #cursor.execute("SELECT * FROM Estudante")
 #print(cursor.fetchall())
-
-
+#con.commit()
